@@ -59,6 +59,11 @@ Generally, it's good practice to load packages you wish to work with at the begi
 
 **Task**: Create a code block below, write and execute the simple function to load the Tidyverse family of packages and the janitor package.  
 
+```{r}
+library(tidyverse)
+library(janitor)
+```
+
 ## Load Data
 
 For this exercise, we will be working with a small subset of the DEA's ARCOS database, which documented shipments of 76 billion opioid pills between 2006 and 2012, during the peak of the opioid epidemic. We will be working with a subset of shipments to Baltimore City, Maryland.  
@@ -69,19 +74,45 @@ There is one record (row or observation) per transaction (a shipment from a manu
 
 **Task**: Create a code block below, and write and execute the function to load in the data of shipments to Baltimore City, Maryland and store it as an object called baltimore. Write a comment describing what you are doing.  
 
+```{r}
+#creating object called 'baltimore' with tsv file
+baltimore <- read_tsv('data/arcos-md-baltimore-city-24510-itemized.tsv')
+```
+
 ## Examine the Data
 
 Now that the data is in, spend some time examining it.
 
 **Task**: Create a code block below, and write and execute a function to open and view the spreadsheet in a new window tab that you can examine.  In that browser window, use your mouse to sort by a handful of columns, highest to lowest and lowest to highest.  In that browser window, practice turning on filters with your mouse to examine a subset of the data.    
 
+```{r}
+#open obj baltimore in a new window tab
+#View(baltimore)
+```
+
 **Task**: Create a code block below and use the glimpse and summary function to examine the shape of the data. Answer each of the following questions in a comment inside the code block:
 * How many rows does the data have? How many columns?   
 * Each column is stored in one of two formats: "chr", or strings of characters, generally used for text; and "dbl", a number format on which mathematical operations can be performed.  Do you see any examples of a column stored as a "dbl" that doesn't really need to be, because we would never do math on it? Are there any columns stored as character that you think should be stored in another format entirely?
 * Based on the information here, how are missing values represented in this data set?
 
+```{r}
+#There are 42 columns and 290,908 rows
+#Columns stored as "dbl" that don't need to be include "REPORTER_ZIP", "BUYER_ZIP", "DRUG_CODE", and "TRANSACTION_ID"
+#I don't think that there are any columns that ought to be stored as "dbl" that are not
+#Missing values are represented with "null"
+
+#running glimpse and summary
+glimpse(baltimore)
+summary(baltimore)
+```
+
 ## Cleaning
 **Task**: Using the function from the janitor package we learned in the last lab, convert all of the column names to lower case.  
+
+```{r}
+#converting all column names to lower case
+baltimore <- clean_names(baltimore)
+```
 
 ## Analysis
 
@@ -93,13 +124,46 @@ Do some quick web research/reporting.  What actions did the DEA and state of Mar
 
 In a comment inside the codeblock, write a paragraph (two to three sentences) that you could drop into a news story that includes the following information: Name and approximate location of the pharmacy; how many pills it received between 2006 and 2012; and a brief description of what actions the DEA and Maryland took against the pharmacy and why. 
 
+```{r}
+
+#Newcare Home Health Services, located in the 3400 block of Sinclair Lane, Baltimore, received over 6 million pills' worth of opiates between 2006 and 2012. In late 2006, several employees of NHHS were indicted for illegal sale of schedule III drugs. In 2007, the DEA revoked their registration as a pharmacy. In 2009, the MD State Board of Pharmacy revoked the Pharmacist's License belonging to one of these employees, one Steven Sodipo.
+
+baltimore %>%
+  group_by(buyer_name,buyer_address1) %>%
+  summarise(shipments = n(),
+            total_pills = sum(dosage_unit) 
+            ) %>%
+  arrange(desc(total_pills))
+```
+
 **Task**: What is the name of the distributor that was responsible for sending the most pills to Baltimore City betwen 2006 and 2012? Produce the code to answer this question in a codeblock below.  
 
 In a comment inside the codeblock, write the following information: the name of the distributor; the number of pills sent between 2006 and 2012; the state where their corporate headquarters is located.   
+```{r}
+
+baltimore %>%
+  group_by(reporter_name) %>%
+  summarise(
+    total_pills = sum(dosage_unit)
+  ) %>%
+  arrange(desc(total_pills))
+#McKesson Corporation; 58,267,330; their corporate HQ is in Texas
+```
 
 **Task**: Let's look only at shipments sent by the distributor in the answer to the previous question.  Which **single pharmacy location** recieved the most shipments from that distributor.  Produce the code to answer this question in a codeblock below.  
 
+```{r}
+baltimore %>%
+  group_by(buyer_name,buyer_address1) %>%
+  filter(reporter_name == "MCKESSON CORPORATION") %>%
+  summarise(shipments = n()) %>%
+  arrange(desc(shipments))
+#Professional Pharmacy Service, address is Sinai Hospital, had 6,254 shipments. It's a hospital, and probably ordered pills on a need-by basis, meaning lots of smaller shipments.
+
+```
 In a comment inside the codeblock, write the name and address of the buyer and the total number of shipments during the covered period.  What is unique about this pharmacy that might explain the high number of shipments?
+
+
 
 **Task**: Of all the pills sent to Baltimore City between 2006 and 2012, which entity had the highest percentage of all pills sent to it. Group only by the name of the pharmacy for this question. Produce your answer in a codeblock below.
 
